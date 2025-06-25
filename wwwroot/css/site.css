@@ -1,0 +1,51 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    margin-bottom: 60px;
+}
+
+.navbar-custom {
+    background-color: #0067b8;
+}
+
+.navbar-custom a,
+.navbar-custom .navbar-brand,
+.navbar-custom .nav-link,
+.navbar-custom .dropdown-toggle {
+    color: #fff;
+}
+.navbar-custom a:hover,
+.navbar-custom .nav-link:hover,
+.navbar-custom .dropdown-toggle:hover {
+    color: #dbe9fc;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+/* Smaller checkbox column */
+th.checkbox-col, td.checkbox-col {
+    width: 40px;
+    text-align: center;
+}
