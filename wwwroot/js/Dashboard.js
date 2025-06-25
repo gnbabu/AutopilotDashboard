@@ -21,7 +21,7 @@
                     //},
                     { key: 'serviceTag', title: 'Service Tag', type: 'text', sortable: true },
                     { key: 'customerSalesOrderNo', title: 'Sales Order No', type: 'text', sortable: true },
-                    { key: 'tenantId', title: 'Tenant ID', type: 'text', sortable: false },
+                    { key: 'tenantId', title: 'Tenant ID', type: 'text', sortable: false, width:'350px' },
                     { key: 'tenantDomain', title: 'Tenant Domain', type: 'text', sortable: false },
                     { key: 'groupTag', title: 'Group Tag', type: 'text', sortable: false },
                     { key: 'skuNumber', title: 'SKU Number', type: 'text', sortable: false },

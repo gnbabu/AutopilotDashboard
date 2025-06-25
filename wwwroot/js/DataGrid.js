@@ -94,6 +94,9 @@
                 const sortIcon = sortKey === col.key ? (sortAsc ? ' ▲' : ' ▼') : '';
 
                 const $th = $('<th scope="col"></th>');
+                if (col.width) {
+                    $th.css('width', col.width);
+                }
                 const hasTitle = col.title !== null && col.title !== undefined && col.title !== '';
 
                 // Use a normal span instead of strong, no wrapping element for empty title
@@ -327,7 +330,8 @@
                                 value = `${day}-${month}-${year}`;
                             }
                         }
-                        $tr.append(`<td>${value}</td>`);
+                        const widthAttr = col.width ? ` style="width: ${col.width};"` : '';
+                        $tr.append(`<td${widthAttr}>${value}</td>`);
                     });
                     $tbody.append($tr);
                 });
@@ -425,7 +429,7 @@
                     </div>
                     ` : ''}
                 </div>
-                <div class="table-responsive">
+                <div>
                     <table class="table table-bordered table-striped mb-0">
                         <thead class="table-light">
                             <tr id="table-head"></tr>
