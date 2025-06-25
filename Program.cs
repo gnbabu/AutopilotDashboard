@@ -1,7 +1,17 @@
+using System.Configuration;
+using AutopilotDashboard.Repositories;
+using AutopilotDashboard.Repositories.Helpers;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+var configuration = builder.Configuration;
+// Repositories
+builder.Services.AddScoped<OracleDataAccessHelper>();
+builder.Services.AddSingleton<IConfiguration>(configuration);
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 var app = builder.Build();
 
