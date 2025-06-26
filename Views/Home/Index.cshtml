@@ -14,25 +14,34 @@
 	<!-- Card-like container for styling -->
 	<div class="bg-white p-4 shadow-sm rounded-3">
 		<!-- Date Range Form -->
-		<form class="row g-3 align-items-end mb-4">
-			<div class="col-md-auto">
+		<form id="filterForm" class="row g-3 mb-4">
+			<div class="col-md-2">
 				<label for="startDate" class="form-label">Start Date</label>
-				<input type="date" class="form-control" id="startDate" value="2025-06-04" />
+				<input type="text" class="form-control" id="startDate" name="startDate" autocomplete="off" />
+				<div id="startDateError" class="text-danger small mt-1"></div>
 			</div>
 
-			<div class="col-md-auto">
+			<div class="col-md-2">
 				<label for="endDate" class="form-label">End Date</label>
-				<input type="date" class="form-control" id="endDate" value="2025-06-18" />
+				<input type="text" class="form-control" id="endDate" name="endDate" autocomplete="off" />
+				<div id="endDateError" class="text-danger small mt-1"></div>
 			</div>
 
-			<div class="col-md-auto d-flex gap-2">
-				<button type="submit" class="btn btn-primary">Search</button>
-				<button type="button" class="btn btn-danger">Clear</button>
+			<div class="col-md-2">
+				<div class="form-group">
+					<!-- Empty label for alignment -->
+					<label class="form-label d-block">&nbsp;</label>
+					<div class="d-flex gap-2">
+						<button type="submit" class="btn btn-primary">Search</button>
+						<button type="button" class="btn btn-danger" id="clearBtn">Clear</button>
+					</div>
+				</div>
 			</div>
 		</form>
 
+
 		<!-- Grid Container -->
-		<div id="orders-grid-container" class="border rounded p-3" style="background-color: #f9f9f9;">
+		<div id="orders-grid-container" class="border rounded p-3 d-none" style="background-color: #f9f9f9;">
 			<!-- Data table will be injected here -->
 		</div>
 	</div>

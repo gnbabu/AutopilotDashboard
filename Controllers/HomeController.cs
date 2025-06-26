@@ -28,15 +28,15 @@ namespace AutopilotDashboard.Controllers
 
         //DateTime startDate, DateTime endDate
         [HttpGet]
-        public IActionResult GetOrders()
+        public IActionResult GetOrders(DateTime startDate, DateTime endDate)
         {
             var allOrders = GetOrdersData();
 
-            //var filtered = allOrders
-            //    .Where(o => o.CreationDate.Date >= startDate.Date && o.CreationDate.Date <= endDate.Date)
-            //    .ToList();
+            var filtered = allOrders
+                .Where(o => o.CreationDate.Date >= startDate.Date && o.CreationDate.Date <= endDate.Date)
+                .ToList();
 
-            return Ok(allOrders);
+            return Ok(filtered);
         }
 
 
