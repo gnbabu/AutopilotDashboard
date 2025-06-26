@@ -1,27 +1,25 @@
 ﻿$(document).ready(function () {
-    // 1. Initialize datepickers
-    $("#startDate, #endDate").datepicker({
-        dateFormat: "mm-dd-yy"
-    });
 
-    // 2. Bind clear button
-    $('#clearBtn').click(function () {
+    // === Initialize Datepickers ===
+    function initDatePickers() {
+        $("#startDate, #endDate").datepicker({
+            dateFormat: "mm-dd-yy"
+        });
+    }
+
+    // === Clear Form and Grid ===
+    function clearForm() {
         $('#startDate, #endDate').val('');
         $('#startDateError, #endDateError').text('');
         $('#orders-grid-container').addClass('d-none').empty();
-    });
+    }
 
-    // 3. Submit handler
-    $('#filterForm').submit(function (e) {
-        e.preventDefault();
-
-        // Clear errors
-        $('#startDateError, #endDateError').text('');
-
-        const start = $('#startDate').val();
-        const end = $('#endDate').val();
-
+    // === Validate Dates ===
+    function validateDates(start, end) {
         let isValid = true;
+
+        // Clear old errors
+        $('#startDateError, #endDateError').text('');
 
         if (!start) {
             $('#startDateError').text('Start Date is required.');
@@ -44,9 +42,11 @@
             isValid = false;
         }
 
-        if (!isValid) return;
+        return { isValid, startDate, endDate };
+    }
 
-        // 4. Make AJAX call
+    // === Fetch Orders via AJAX ===
+    function fetchOrders(startDate, endDate) {
         $.ajax({
             url: '/Home/GetOrders',
             method: 'GET',
@@ -93,8 +93,27 @@
                 console.error(err);
             }
         });
+    }
+
+    // === Event Bindings ===
+    initDatePickers();
+
+    $('#clearBtn').click(clearForm);
+
+    $('#filterForm').submit(function (e) {
+        e.preventDefault();
+
+        const start = $('#startDate').val();
+        const end = $('#endDate').val();
+        const { isValid, startDate, endDate } = validateDates(start, end);
+
+        if (isValid) {
+            fetchOrders(startDate, endDate);
+        }
     });
+
 });
+
 
 //Custom cell templates Sample
 
