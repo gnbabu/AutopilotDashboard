@@ -14,19 +14,19 @@ namespace AutopilotDashboard.Repositories
             _oracleHelper = oracleHelper;
         }
 
-        public async Task<IEnumerable<OrderRecord>> GetOrdersByTenantAsync(string tenantId)
+        public async Task<IEnumerable<OrderRecord>> GetOrdersAsync(string tenantId)
         {
             var parameters = new OracleParameter[]
             {
-        new OracleParameter("p_tenant_id", OracleDbType.Varchar2, 50)
-        {
-          Direction = ParameterDirection.Input,
-          Value = tenantId
-        },
-        new OracleParameter("p_result", OracleDbType.RefCursor)
-        {
-          Direction = ParameterDirection.Output
-        }
+                new OracleParameter("p_tenant_id", OracleDbType.Varchar2, 50)
+                {
+                  Direction = ParameterDirection.Input,
+                  Value = tenantId
+                },
+                new OracleParameter("p_result", OracleDbType.RefCursor)
+                {
+                    Direction = ParameterDirection.Output
+                }
             };
 
             return await _oracleHelper.ExecuteReaderAsync("usp_GetOrderRecords", parameters, reader => new OrderRecord

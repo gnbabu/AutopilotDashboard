@@ -14,6 +14,8 @@
             enableColumnFilters: false,
             enableColumnVisibility: false,
             enableSorting: false, // overall sorting, defaults to false
+            dateFormat: 'MM-DD-YYYY',
+            includeTime: false,//  option for formatting dates with time
             exportOptions: {
                 enable: false,    // Overall enable flag for export
                 copy: false,      // Enable/disable the Copy button
@@ -38,25 +40,33 @@
 
         // Date parsing function
         function parseDate(str) {
-            const [dd, mm, yyyy] = str.split('-');
-            if (!dd || !mm || !yyyy) return null;
-            const date = new Date(`${yyyy}-${mm}-${dd}`);
-            return isNaN(date.getTime()) ? null : date;
+            const date = moment(str, settings.dateFormat, true); // strict mode
+            return date.isValid() ? date.toDate() : null;
         }
-
         function formatValueForSearch(value, col) {
             if (value == null) return '';
+
             if (col.type === 'date') {
-                const date = new Date(value);
-                if (!isNaN(date.getTime())) {
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const year = date.getFullYear();
-                    return `${day}-${month}-${year}`.toLowerCase();
-                }
+                const date = moment(value);
+                return date.isValid()
+                    ? date.format(settings.dateFormat).toLowerCase()
+                    : '';
             }
             return value.toString().toLowerCase();
         }
+        function formatDateForDisplay(dateVal) {
+            if (!dateVal) return '';
+
+            const m = moment(dateVal, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601], true);
+            if (!m.isValid()) return '';
+
+            const formatStr = settings.includeTime
+                ? `${settings.dateFormat} HH:mm:ss`
+                : settings.dateFormat;
+
+            return m.format(formatStr);
+        }
+
 
         function buildColumnVisibilityDropdown() {
             const $dropdown = $element.find('.column-visibility-dropdown').empty();
@@ -86,81 +96,81 @@
 
         function buildTableHeader() {
             const $thead = $element.find('#table-head').empty();
+
             settings.columns.forEach(col => {
                 if (!visibleColumns[col.key]) return;
 
-                const inputType = col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : 'text';
+                const inputType = col.type === 'number' ? 'number' : 'text'; // Always use 'text' for jQuery datepicker
                 const filter = filters[col.key] || {};
                 const sortIcon = sortKey === col.key ? (sortAsc ? ' ▲' : ' ▼') : '';
 
                 const $th = $('<th scope="col"></th>');
-                if (col.width) {
-                    $th.css('width', col.width);
-                }
-                const hasTitle = col.title !== null && col.title !== undefined && col.title !== '';
+                if (col.width) $th.css('width', col.width);
 
-                // Use a normal span instead of strong, no wrapping element for empty title
-                const $label = $('<span>').text(hasTitle ? col.title : '').append(sortIcon);
-
-                // Because append(sortIcon) appends text node, but since sortIcon is string, use text manipulation instead:
-                // Let's create text node for title and for sortIcon separately:
-                // But simpler to build the label with text + sort icon concatenated
-                // So replace to:
+                const hasTitle = col.title != null && col.title !== '';
                 const labelText = hasTitle ? col.title + sortIcon : '';
                 const $labelSpan = $('<span>').text(labelText);
 
-                // Conditionally attach the click event based on column's sortable property and overall enableSorting
+                // Sorting
                 if (settings.enableSorting !== false && col.sortable !== false) {
-                    $labelSpan.css('cursor', 'pointer'); // Set pointer cursor only when sortable
-                    $labelSpan.click(() => {
-                        if (sortKey === col.key) {
-                            sortAsc = !sortAsc;
-                        } else {
-                            sortKey = col.key;
-                            sortAsc = true;
-                        }
+                    $labelSpan.css('cursor', 'pointer').click(() => {
+                        sortKey === col.key ? sortAsc = !sortAsc : (sortKey = col.key, sortAsc = true);
                         buildTableHeader();
                         renderTable();
                     });
                 } else {
-                    $labelSpan.css('cursor', 'default'); // Remove pointer cursor for non-sortable columns
+                    $labelSpan.css('cursor', 'default');
                 }
 
                 if (settings.enableColumnFilters && hasTitle && col.type) {
-                    // Only render filter dropdown if title is provided AND filters enabled AND col.type exists
+                    const placeholderStr = col.type === 'date'
+                        ? settings.dateFormat
+                            .match(/(DD|MM|YYYY)/g)
+                            ?.join('-') || 'DD-MM-YYYY'
+                        : 'Filter...';
+
+                    const value1 = col.type === 'date' && filter.value1
+                        ? moment(filter.value1, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601])
+                            .format(settings.dateFormat)
+                        : '';
+
+                    const value2 = col.type === 'date' && filter.value2
+                        ? moment(filter.value2, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601])
+                            .format(settings.dateFormat)
+                        : '';
+
                     const $inputGroup = $(`
-                    <div class="input-group input-group-sm mt-1">
-                        <input type="${inputType}" class="form-control filter-input filter-val1" placeholder="Filter..." data-key="${col.key}" value="${filter.value1 || ''}">
-                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Filter options">
-                            <i class="bi bi-funnel"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 250px;">
-                            <li class="mb-2">
-                                <select class="form-select form-select-sm filter-operator" data-key="${col.key}">
-                                    <option value="eq">Equal</option>
-                                    <option value="neq">Not Equal</option>
-                                    ${(col.type === 'number' || col.type === 'date')
-                            ? `<option value="lt">Less Than</option> 
-                                           <option value="gt">Greater Than</option> 
-                                           <option value="lte">Less Than or Equal</option> 
-                                           <option value="gte">Greater Than or Equal</option> 
-                                           <option value="between">Between</option>`
-                            : `<option value="contains">Contains</option> 
-                                           <option value="startsWith">Starts With</option> 
-                                           <option value="endsWith">Ends With</option>`
-                        }
-                                </select>
-                            </li>
-                            <li class="mb-2">
-                                <input type="${inputType}" class="form-control form-control-sm filter-val2" placeholder="Second value (for between)" style="display: none;" value="${filter.value2 || ''}">
-                            </li>
-                            <li class="d-flex justify-content-between mt-2">
-                                <button type="button" class="btn btn-sm btn-primary apply-filter" data-key="${col.key}">Apply</button>
-                                <button type="button" class="btn btn-sm btn-secondary clear-filter" data-key="${col.key}">Reset</button>
-                            </li>
-                        </ul>
-                    </div>
-                    `);
+                <div class="input-group input-group-sm mt-1">
+                    <input type="${inputType}" class="form-control filter-input filter-val1" placeholder="${placeholderStr}" data-key="${col.key}" value="${value1}">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Filter options">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width: 250px;">
+                        <li class="mb-2">
+                            <select class="form-select form-select-sm filter-operator" data-key="${col.key}">
+                                <option value="eq">Equal</option>
+                                <option value="neq">Not Equal</option>
+                                ${(col.type === 'number' || col.type === 'date') ? `
+                                    <option value="lt">Less Than</option>
+                                    <option value="gt">Greater Than</option>
+                                    <option value="lte">Less Than or Equal</option>
+                                    <option value="gte">Greater Than or Equal</option>
+                                    <option value="between">Between</option>` : `
+                                    <option value="contains">Contains</option>
+                                    <option value="startsWith">Starts With</option>
+                                    <option value="endsWith">Ends With</option>`}
+                            </select>
+                        </li>
+                        <li class="mb-2">
+                            <input type="${inputType}" class="form-control form-control-sm filter-val2" placeholder="Second value (for between)" style="display: none;" value="${value2}">
+                        </li>
+                        <li class="d-flex justify-content-between mt-2">
+                            <button type="button" class="btn btn-sm btn-primary apply-filter" data-key="${col.key}">Apply</button>
+                            <button type="button" class="btn btn-sm btn-secondary clear-filter" data-key="${col.key}">Reset</button>
+                        </li>
+                    </ul>
+                </div>
+            `);
 
                     const $dropdown = $inputGroup.find('.dropdown-menu');
                     const $operator = $dropdown.find('.filter-operator');
@@ -178,6 +188,7 @@
                         $operator.val(filter.op);
                     }
 
+                    // Apply filter
                     $dropdown.find('.apply-filter').click(function () {
                         const op = $operator.val();
                         const value1 = $val1.val().trim();
@@ -186,24 +197,25 @@
                         if (op === 'between' && (!value1 || !value2)) {
                             alert("Please enter both values for 'Between' filter.");
                             return;
-                        } else if (!value1) {
+                        }
+
+                        if (!value1) {
                             delete filters[col.key];
                             $val1.val('');
                             $val2.val('').hide();
                             page = 1;
                             renderTable();
-                            const dropdownInstance = bootstrap.Dropdown.getInstance($inputGroup.find('.dropdown-toggle')[0]);
-                            dropdownInstance?.hide();
+                            bootstrap.Dropdown.getInstance($inputGroup.find('.dropdown-toggle')[0])?.hide();
                             return;
                         }
 
                         filters[col.key] = { op, value1, value2 };
                         page = 1;
                         renderTable();
-                        const dropdownInstance = bootstrap.Dropdown.getInstance($inputGroup.find('.dropdown-toggle')[0]);
-                        dropdownInstance?.hide();
+                        bootstrap.Dropdown.getInstance($inputGroup.find('.dropdown-toggle')[0])?.hide();
                     });
 
+                    // Clear filter
                     $dropdown.find('.clear-filter').click(function () {
                         delete filters[col.key];
                         $operator.val('eq');
@@ -211,8 +223,7 @@
                         $val2.val('').hide();
                         page = 1;
                         renderTable();
-                        const dropdownInstance = bootstrap.Dropdown.getInstance($inputGroup.find('.dropdown-toggle')[0]);
-                        dropdownInstance?.hide();
+                        bootstrap.Dropdown.getInstance($inputGroup.find('.dropdown-toggle')[0])?.hide();
                     });
 
                     $dropdown.on('click', function (e) {
@@ -222,53 +233,95 @@
                     const $wrapper = $('<div class="d-flex flex-column"></div>');
                     $wrapper.append($labelSpan).append($inputGroup);
                     $th.append($wrapper);
+
+                    // Initialize jQuery datepicker for date inputs
+                    if (col.type === 'date') {
+                        setTimeout(() => {
+                            $th.find('.filter-val1, .filter-val2').datepicker({
+                                dateFormat: convertToJqueryDateFormat(settings.dateFormat),
+                                changeMonth: true,
+                                changeYear: true
+                            });
+                        }, 0);
+                    }
+
                 } else {
-                    // No filter dropdown rendered if title not provided or filters disabled
                     $th.append($labelSpan);
                 }
+
                 $thead.append($th);
             });
+        }
+
+        // Helper to convert Moment-like format to jQuery UI format
+        function convertToJqueryDateFormat(format) {
+            return format
+                .replace(/DD/g, 'dd')
+                .replace(/MM/g, 'mm')
+                .replace(/YYYY/g, 'yy')
+                .replace(/YY/g, 'y');
         }
 
         function applyFilters(data) {
             return data.filter(row => {
                 return Object.entries(filters).every(([key, filter]) => {
+                    const col = settings.columns.find(c => c.key === key);
+                    const colType = col?.type || 'text';
+
                     const rawVal = row[key];
-                    const val = rawVal !== null && rawVal !== undefined ? rawVal.toString().toLowerCase() : '';
+                    const val = rawVal != null ? rawVal.toString().toLowerCase() : '';
                     const value1 = (filter.value1 || '').toLowerCase();
                     const value2 = (filter.value2 || '').toLowerCase();
 
-                    switch (filter.op) {
-                        case 'eq': return val === value1;
-                        case 'neq': return val !== value1;
-                        case 'lt': return val < value1;
-                        case 'gt': return val > value1;
-                        case 'lte': return val <= value1;
-                        case 'gte': return val >= value1;
-                        case 'between': {
-                            if (!filter.value1 || !filter.value2) return false;
-                            const numVal = parseFloat(val);
-                            const numVal1 = parseFloat(filter.value1);
-                            const numVal2 = parseFloat(filter.value2);
-                            if (!isNaN(numVal) && !isNaN(numVal1) && !isNaN(numVal2)) {
-                                return numVal >= numVal1 && numVal <= numVal2;
-                            }
-                            const dateVal = parseDate(val);
-                            const dateVal1 = parseDate(filter.value1);
-                            const dateVal2 = parseDate(filter.value2);
-                            if (dateVal && dateVal1 && dateVal2) {
-                                return dateVal >= dateVal1 && dateVal <= dateVal2;
-                            }
-                            return false;
+                    if (colType === 'number') {
+                        const numVal = parseFloat(val);
+                        const numVal1 = parseFloat(value1);
+                        const numVal2 = parseFloat(value2);
+
+                        switch (filter.op) {
+                            case 'eq': return numVal === numVal1;
+                            case 'neq': return numVal !== numVal1;
+                            case 'lt': return numVal < numVal1;
+                            case 'gt': return numVal > numVal1;
+                            case 'lte': return numVal <= numVal1;
+                            case 'gte': return numVal >= numVal1;
+                            case 'between': return !isNaN(numVal) && !isNaN(numVal1) && !isNaN(numVal2) && numVal >= numVal1 && numVal <= numVal2;
+                            default: return true;
                         }
-                        case 'contains': return val.includes(value1);
-                        case 'startsWith': return val.startsWith(value1);
-                        case 'endsWith': return val.endsWith(value1);
-                        default: return true;
+
+                    } else if (colType === 'date') {
+                        const dateVal = moment(rawVal, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601], true);
+                        const dateVal1 = moment(filter.value1, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601], true);
+                        const dateVal2 = moment(filter.value2, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601], true);
+
+                        if (!dateVal.isValid()) return false;
+
+                        switch (filter.op) {
+                            case 'eq': return dateVal.isSame(dateVal1, 'day');
+                            case 'neq': return !dateVal.isSame(dateVal1, 'day');
+                            case 'lt': return dateVal.isBefore(dateVal1, 'day');
+                            case 'gt': return dateVal.isAfter(dateVal1, 'day');
+                            case 'lte': return dateVal.isSameOrBefore(dateVal1, 'day');
+                            case 'gte': return dateVal.isSameOrAfter(dateVal1, 'day');
+                            case 'between': return dateVal1.isValid() && dateVal2.isValid() && dateVal.isBetween(dateVal1, dateVal2, 'day', '[]');
+                            default: return true;
+                        }
+
+                    } else {
+                        // text/string comparisons
+                        switch (filter.op) {
+                            case 'eq': return val === value1;
+                            case 'neq': return val !== value1;
+                            case 'contains': return val.includes(value1);
+                            case 'startsWith': return val.startsWith(value1);
+                            case 'endsWith': return val.endsWith(value1);
+                            default: return true;
+                        }
                     }
                 });
             });
         }
+
 
         function renderTable() {
             const $tbody = $element.find('#table-body').empty();
@@ -320,15 +373,9 @@
                                 value = col.cellTemplate.replace(/{([^}]+)}/g, (match, p1) => row[p1] || '');
                             }
                         }
-
-                        if (col.type === 'date' && value) {
-                            const date = new Date(value);
-                            if (!isNaN(date.getTime())) {
-                                const day = String(date.getDate()).padStart(2, '0');
-                                const month = String(date.getMonth() + 1).padStart(2, '0');
-                                const year = date.getFullYear();
-                                value = `${day}-${month}-${year}`;
-                            }
+                        else if (col.type === 'date' && value) {
+                            // If date, format for display
+                            value = formatDateForDisplay(value);
                         }
                         const widthAttr = col.width ? ` style="width: ${col.width};"` : '';
                         $tr.append(`<td${widthAttr}>${value}</td>`);
@@ -461,9 +508,8 @@
             });
 
             // Event handlers for exporting functionality
-
-            if (settings.exportOptions.copy) {
-                $element.find('#copy-btn').click(() => {
+            if (settings.exportOptions?.copy) {
+                $element.find('#copy-btn').off('click').on('click', () => {
                     const visibleCols = settings.columns.filter(c => visibleColumns[c.key]);
                     const filteredData = applyFilters(data);
 
@@ -473,53 +519,91 @@
 
                     // Data rows
                     filteredData.forEach(row => {
-                        copyText += visibleCols.map(col => row[col.key] ?? '').join('\t') + '\n';
+                        const rowData = visibleCols.map(col => {
+                            let val = row[col.key];
+
+                            if (col.type === 'date' && val) {
+                                const m = moment(val, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601], true);
+                                val = m.isValid() ? m.format(settings.dateFormat) : val;
+                            }
+
+                            return (val ?? '').toString().replace(/\t/g, ' '); // Remove tabs to avoid breaking cells
+                        });
+                        copyText += rowData.join('\t') + '\n';
                     });
 
-                    // Copy to clipboard via hidden textarea
-                    const $tempTextArea = $('<textarea>');
-                    $tempTextArea.val(copyText)
-                        .css({ position: 'absolute', top: '-9999px', left: '-9999px', opacity: 0 })
-                        .appendTo('body');
-
-                    $tempTextArea[0].select();
-
-                    try {
-                        const successful = document.execCommand('copy');
-                        alert(successful ? 'Copied to clipboard!' : 'Copy failed.');
-                    } catch (err) {
-                        alert('Copy failed.');
+                    // Use navigator clipboard API if supported
+                    if (navigator.clipboard?.writeText) {
+                        navigator.clipboard.writeText(copyText)
+                            .then(() => alert('Copied to clipboard!'))
+                            .catch(() => fallbackCopy(copyText));
+                    } else {
+                        fallbackCopy(copyText);
                     }
 
-                    $tempTextArea.remove();
+                    function fallbackCopy(text) {
+                        const $tempTextArea = $('<textarea>')
+                            .val(text)
+                            .css({ position: 'absolute', top: '-9999px', left: '-9999px', opacity: 0 })
+                            .appendTo('body');
+
+                        $tempTextArea[0].select();
+                        try {
+                            const successful = document.execCommand('copy');
+                            alert(successful ? 'Copied to clipboard!' : 'Copy failed.');
+                        } catch (err) {
+                            alert('Copy failed.');
+                        }
+
+                        $tempTextArea.remove();
+                    }
                 });
             }
-            if (settings.exportOptions.excel) {
-                $element.find('#excel-btn').click(() => {
+
+            if (settings.exportOptions?.excel) {
+                $element.find('#excel-btn').off('click').on('click', () => {
                     const visibleCols = settings.columns.filter(c => visibleColumns[c.key]);
                     const filteredData = applyFilters(data);
 
-                    let csvContent = '';
-                    csvContent += visibleCols.map(col => `"${col.title}"`).join(',') + '\n';
+                    // Prepare CSV headers
+                    let csvContent = visibleCols.map(col => `"${col.title}"`).join(',') + '\n';
 
+                    // Prepare CSV rows
                     filteredData.forEach(row => {
-                        csvContent += visibleCols.map(col => `"${row[col.key] ?? ''}"`).join(',') + '\n';
+                        const rowData = visibleCols.map(col => {
+                            let val = row[col.key];
+
+                            // Format dates according to settings
+                            if (col.type === 'date' && val) {
+                                const m = moment(val, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601], true);
+                                val = m.isValid() ? m.format(settings.dateFormat) : val;
+                            }
+
+                            // Escape double quotes in values
+                            if (typeof val === 'string') {
+                                val = val.replace(/"/g, '""');
+                            }
+
+                            return `"${val ?? ''}"`;
+                        });
+                        csvContent += rowData.join(',') + '\n';
                     });
 
+                    // Create a downloadable CSV
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                     const url = URL.createObjectURL(blob);
 
-                    const link = document.createElement("a");
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", "export.csv");
+                    const link = document.createElement('a');
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', 'export.csv');
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                 });
             }
 
-            if (settings.exportOptions.pdf) {
-                $element.find('#pdf-btn').click(() => {
+            if (settings.exportOptions?.pdf) {
+                $element.find('#pdf-btn').off('click').on('click', () => {
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF({ orientation: 'landscape' });
 
@@ -527,22 +611,34 @@
                     const filteredData = applyFilters(data);
 
                     const head = [visibleCols.map(col => col.title)];
-                    const body = filteredData.map(row => visibleCols.map(col => row[col.key] ?? ''));
+                    const body = filteredData.map(row =>
+                        visibleCols.map(col => {
+                            const val = row[col.key];
+
+                            if (col.type === 'date' && val) {
+                                return moment(val, [settings.dateFormat, "YYYY-MM-DD", moment.ISO_8601], true).isValid()
+                                    ? moment(val).format(settings.dateFormat)
+                                    : val;
+                            }
+                            return val ?? '';
+                        })
+                    );
 
                     const columnStyles = {};
-                    visibleCols.forEach((col, idx) => {
-                        columnStyles[idx] = { cellWidth: 'wrap' };
+                    visibleCols.forEach((col, i) => {
+                        columnStyles[i] = { cellWidth: 'wrap' };
                     });
 
                     doc.autoTable({
-                        head: head,
-                        body: body,
+                        head,
+                        body,
                         startY: 10,
                         styles: { fontSize: 8 },
-                        columnStyles: columnStyles,
+                        columnStyles,
                         tableWidth: 'wrap',
                         horizontalPageBreak: true,
                         horizontalPageBreakRepeat: head,
+                        theme: 'grid'
                     });
 
                     doc.save('export.pdf');

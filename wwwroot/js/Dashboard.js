@@ -9,7 +9,7 @@
             $('#orders-grid-container').dataGrid({
                 // apiUrl: 'http://localhost:53393/api/employees/all',
                 data: response,
-                columns :[
+                columns: [
                     //{
                     //    key: 'action',
                     //    title: '',
@@ -19,9 +19,20 @@
                     //        return `<a href="#" class="data-link text-primary" data-id="${row.serviceTag}">Review</a>`;
                     //    }
                     //},
+                    //{
+                    //    key: 'creationDate', title: 'Creation Date', type: 'date', sortable: true,
+                    //    cellTemplate: function (row) {
+                    //        const rawDate = row.creationDate;
+                    //        const formatted = moment(rawDate, moment.ISO_8601).isValid()
+                    //            ? moment(rawDate).format('DD-MM-YYYY HH:mm:ss')
+                    //            : '';
+
+                    //        return `<span data-id="${rawDate}">${formatted}</span>`;
+                    //    }
+                    //}
                     { key: 'serviceTag', title: 'Service Tag', type: 'text', sortable: true },
                     { key: 'customerSalesOrderNo', title: 'Sales Order No', type: 'text', sortable: true },
-                    { key: 'tenantId', title: 'Tenant ID', type: 'text', sortable: false, width:'350px' },
+                    { key: 'tenantId', title: 'Tenant ID', type: 'text', sortable: false, width: '350px' },
                     { key: 'tenantDomain', title: 'Tenant Domain', type: 'text', sortable: false },
                     { key: 'groupTag', title: 'Group Tag', type: 'text', sortable: false },
                     { key: 'skuNumber', title: 'SKU Number', type: 'text', sortable: false },
@@ -37,6 +48,8 @@
                 enableColumnFilters: true,
                 enableColumnVisibility: true,
                 enableSorting: true,
+                dateFormat: 'MM-DD-YYYY',
+                includeTime: true,
                 exportOptions: {
                     enable: true,
                     copy: true,
