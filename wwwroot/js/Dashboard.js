@@ -12,6 +12,7 @@
         $('#startDate, #endDate').val('');
         $('#startDateError, #endDateError').text('');
         $('#orders-grid-container').addClass('d-none').empty();
+        hideLoader();
     }
 
     // === Validate Dates ===
@@ -44,9 +45,17 @@
 
         return { isValid, startDate, endDate };
     }
+    function showLoader() {
+        $('#main-loader').removeClass('d-none');
+    }
+
+    function hideLoader() {
+        $('#main-loader').addClass('d-none');
+    }
 
     // === Fetch Orders via AJAX ===
     function fetchOrders(startDate, endDate) {
+        showLoader();
         $.ajax({
             url: '/Home/GetOrders',
             method: 'GET',
@@ -91,6 +100,9 @@
             error: function (err) {
                 alert("Error loading data.");
                 console.error(err);
+            },
+            complete: function () {
+                hideLoader();
             }
         });
     }
